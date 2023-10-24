@@ -111,7 +111,7 @@ namespace com.bemaservices.ReportingTools.Jobs
             int lastNameFormatValue = dataMap.GetString( BemaAttributeKey.LastName ).AsInteger();
             int nickNameFormatValue = dataMap.GetString( BemaAttributeKey.NickName ).AsInteger();
             int titleFormatValue = dataMap.GetString( BemaAttributeKey.Title ).AsInteger();
-            int fullNameFirstNameFormatValue = dataMap.GetString( BemaAttributeKey.FullNameNickName ).AsInteger();
+            int fullNameFirstNameFormatValue = dataMap.GetString( BemaAttributeKey.FullNameFirstName ).AsInteger();
 
             int batchNumber = 1;
             var resultContext = new RockContext();
