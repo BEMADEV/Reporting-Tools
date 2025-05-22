@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Jobs\CalculateReportingFields.cs" />
+    <Compile Include="Migrations\006_FieldTypeConversion.cs" />
     <Compile Include="Migrations\005_AttributeKeyFix.cs" />
     <Compile Include="Migrations\004_FormattingUpdates.cs" />
     <Compile Include="Migrations\003_SqlFunctions.cs" />

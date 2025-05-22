@@ -25,6 +25,7 @@ using Quartz;
 using Rock;
 using Rock.Attribute;
 using Rock.Data;
+using Rock.Jobs;
 using Rock.Model;
 using Rock.Web.Cache;
 using Rock.Web.UI;
@@ -41,7 +42,7 @@ namespace com.bemaservices.ReportingTools.Jobs
     [CustomDropdownListField( "Full Name with First Names Format", "", "0^Mr. Theodore & Mrs. Cynthia Decker,1^Mr. and Mrs. Theodore Decker Sr.", true, "0", "Formatting", 6, BemaAttributeKey.FullNameFirstName )]
     [IntegerField( "Command Timeout", "Maximum amount of time (in seconds) to wait for the sql operations to complete. Leave blank to use the default for this job (3600). Note, some operations could take several minutes, so you might want to set it at 3600 (60 minutes) or higher", false, 60 * 60, "General", 7, "CommandTimeout" )]
     [DisallowConcurrentExecution]
-    public class CalculateReportingFields : IJob
+    public class CalculateReportingFields : RockJob
     {
         /* BEMA.Start */
         #region Attribute Keys
@@ -78,7 +79,7 @@ namespace com.bemaservices.ReportingTools.Jobs
         /// <see cref="ITrigger" /> fires that is associated with
         /// the <see cref="IJob" />.
         /// </summary>
-        public virtual void Execute( IJobExecutionContext context )
+        public override void Execute()
         {
             var familyType = GroupTypeCache.Get( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY.AsGuid() );
             var adultRole = familyType.Roles.FirstOrDefault( r => r.Guid.Equals( Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_ADULT.AsGuid() ) );
@@ -103,20 +104,19 @@ namespace com.bemaservices.ReportingTools.Jobs
             var givingUnitTitlesAttribute = AttributeCache.Get( com.bemaservices.ReportingTools.SystemGuid.Attribute.GIVINGUNIT_TITLES_ATTRIBUTE.AsGuid() );
             var givingUnitFullNameFirstNamesAttribute = AttributeCache.Get( com.bemaservices.ReportingTools.SystemGuid.Attribute.GIVINGUNIT_FULL_NAME_FIRST_NAMES_ATTRIBUTE.AsGuid() );
 
-            JobDataMap dataMap = context.JobDetail.JobDataMap;
-            int commandTimeout = dataMap.GetString( "CommandTimeout" ).AsIntegerOrNull() ?? 3600;
-            int firstNameNickNameNoTitleFormatValue = dataMap.GetString( BemaAttributeKey.FullNameNickNameNoTitle ).AsInteger();
-            int firstNameFormatValue = dataMap.GetString( BemaAttributeKey.FirstName ).AsInteger();
-            int fullNameNickNameFormatValue = dataMap.GetString( BemaAttributeKey.FullNameNickName ).AsInteger();
-            int lastNameFormatValue = dataMap.GetString( BemaAttributeKey.LastName ).AsInteger();
-            int nickNameFormatValue = dataMap.GetString( BemaAttributeKey.NickName ).AsInteger();
-            int titleFormatValue = dataMap.GetString( BemaAttributeKey.Title ).AsInteger();
-            int fullNameFirstNameFormatValue = dataMap.GetString( BemaAttributeKey.FullNameFirstName ).AsInteger();
+            int commandTimeout = GetAttributeValue( "CommandTimeout" ).AsIntegerOrNull() ?? 3600;
+            int firstNameNickNameNoTitleFormatValue = GetAttributeValue( BemaAttributeKey.FullNameNickNameNoTitle ).AsInteger();
+            int firstNameFormatValue = GetAttributeValue( BemaAttributeKey.FirstName ).AsInteger();
+            int fullNameNickNameFormatValue = GetAttributeValue( BemaAttributeKey.FullNameNickName ).AsInteger();
+            int lastNameFormatValue = GetAttributeValue( BemaAttributeKey.LastName ).AsInteger();
+            int nickNameFormatValue = GetAttributeValue( BemaAttributeKey.NickName ).AsInteger();
+            int titleFormatValue = GetAttributeValue( BemaAttributeKey.Title ).AsInteger();
+            int fullNameFirstNameFormatValue = GetAttributeValue( BemaAttributeKey.FullNameFirstName ).AsInteger();
 
             int batchNumber = 1;
             var resultContext = new RockContext();
             resultContext.Database.CommandTimeout = commandTimeout;
-            context.UpdateLastStatusMessage( $"Getting Reporting Fields Dataset for Batch #{batchNumber}..." );
+            this.UpdateLastStatusMessage( $"Getting Reporting Fields Dataset for Batch #{batchNumber}..." );
             var results = resultContext.Database.SqlQuery<FamilyNameResult>( "dbo.BEMA_ReportingTools_sp_ReportingFieldsDataset @firstNameNickNameNoTitleFormatValue, @firstNameFormatValue, @fullNameNickNameFormatValue, @lastNameFormatValue, @nickNameFormatValue, @titleFormatValue, @fullNameFirstNameFormatValue",
                 new System.Data.SqlClient.SqlParameter( "firstNameNickNameNoTitleFormatValue", firstNameNickNameNoTitleFormatValue ),
                 new System.Data.SqlClient.SqlParameter( "firstNameFormatValue", firstNameFormatValue ),
@@ -161,11 +161,11 @@ namespace com.bemaservices.ReportingTools.Jobs
 
                     SaveAttributeSql( reportingFieldsUpdateDateAttribute, result.Id, RockDateTime.Now.ToString(), commandTimeout, true );
                     // update stats
-                    context.UpdateLastStatusMessage( $"Updating Family Names {progressPosition} of {progressTotal} for Batch #{batchNumber}" );
+                    this.UpdateLastStatusMessage( $"Updating Family Names {progressPosition} of {progressTotal} for Batch #{batchNumber}" );
                 }
 
                 batchNumber++;
-                context.UpdateLastStatusMessage( $"Getting Reporting Fields Dataset for Batch #{batchNumber}..." );
+                this.UpdateLastStatusMessage( $"Getting Reporting Fields Dataset for Batch #{batchNumber}..." );
                 results = resultContext.Database.SqlQuery<FamilyNameResult>( "dbo.BEMA_ReportingTools_sp_ReportingFieldsDataset @firstNameNickNameNoTitleFormatValue, @firstNameFormatValue, @fullNameNickNameFormatValue, @lastNameFormatValue, @nickNameFormatValue, @titleFormatValue, @fullNameFirstNameFormatValue",
                     new System.Data.SqlClient.SqlParameter( "firstNameNickNameNoTitleFormatValue", firstNameNickNameNoTitleFormatValue ),
                     new System.Data.SqlClient.SqlParameter( "firstNameFormatValue", firstNameFormatValue ),
@@ -177,7 +177,7 @@ namespace com.bemaservices.ReportingTools.Jobs
                 ).ToList();
             }
 
-            context.UpdateLastStatusMessage( "" );
+            this.UpdateLastStatusMessage( "" );
         }
 
         private static bool SaveAttributeSql( AttributeCache attribute, int personId, string value, int commandTimeout, bool setDateTime = false, bool setBoolean = false )
